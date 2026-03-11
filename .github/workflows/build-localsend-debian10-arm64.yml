@@ -27,24 +27,15 @@ jobs:
             bash -c "
               set -e
               
-              # 1. 替换 Debian 10 源为 archive 源 (必须最先做)
-              cat << 'EOF' > /etc/apt/sources.list
-              # 官方 LTS 源
-              deb http://archive.debian.org/debian/ buster main contrib non-free
-              deb-src http://archive.debian.org/debian/ buster main contrib non-free
-              
-              # 官方 LTS 安全更新源
-              deb http://archive.debian.org/debian-security/ buster/updates main contrib non-free
-              deb-src http://archive.debian.org/debian-security/ buster/updates main contrib non-free
-              
-              # 官方更新源
-              deb http://archive.debian.org/debian/ buster-updates main contrib non-free
-              deb-src http://archive.debian.org/debian/ buster-updates main contrib non-free
-              
-              # 官方 backports 源
-              deb http://archive.debian.org/debian/ buster-backports main contrib non-free
-              deb-src http://archive.debian.org/debian/ buster-backports main contrib non-free
-              EOF
+              # 1. 替换 Debian 10 源为 archive 源 (使用 echo 避免 EOF 缩进冲突)
+              echo 'deb http://archive.debian.org/debian/ buster main contrib non-free' > /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian/ buster main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb http://archive.debian.org/debian-security/ buster/updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian-security/ buster/updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb http://archive.debian.org/debian/ buster-updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian/ buster-updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb http://archive.debian.org/debian/ buster-backports main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian/ buster-backports main contrib non-free' >> /etc/apt/sources.list
               
               # 2. 更新源 (忽略过期检查)
               apt-get -o Acquire::Check-Valid-Until=false update
@@ -65,7 +56,7 @@ jobs:
                 libstdc++-8-dev \
                 libappindicator3-dev
               
-              # 4. 解决挂载目录的 Git 权限问题 (必须在安装 git 之后执行)
+              # 4. 解决挂载目录的 Git 权限问题
               git config --global --add safe.directory '*'
               
               # 5. 安装 Flutter
