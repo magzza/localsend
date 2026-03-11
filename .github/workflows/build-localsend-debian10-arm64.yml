@@ -20,10 +20,11 @@ jobs:
 
       - name: Create Swap Space to prevent OOM
         run: |
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
+          # 换一个名字，避免和系统自带的 swapfile 冲突
+          sudo fallocate -l 8G /swapfile-extra
+          sudo chmod 600 /swapfile-extra
+          sudo mkswap /swapfile-extra
+          sudo swapon /swapfile-extra
 
       - name: Build in Debian 10 ARM64 container
         run: |
@@ -88,7 +89,7 @@ jobs:
               # 10. 获取依赖
               flutter pub get
               
-              # 11. 构建 Linux 版本 (加上 -v 输出极其详细的日志，防 OOM)
+              # 11. 构建 Linux 版本 (加上 -v 输出极其详细的日志，配合额外的 8GB 虚拟内存防 OOM)
               flutter build linux --release -v
               
               # 12. 打包成 tar.gz
