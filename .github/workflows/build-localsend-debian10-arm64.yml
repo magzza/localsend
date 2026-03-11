@@ -33,7 +33,49 @@ jobs:
             debian:10 \
             bash -c "
               set -e
-              # ... (中间的替换源、安装依赖、安装Flutter等代码保持不变) ...
+              
+              # 1. 替换 Debian 10 源为 archive 源 (使用 echo 避免 EOF 缩进冲突)
+              echo 'deb http://archive.debian.org/debian/ buster main contrib non-free' > /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian/ buster main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb http://archive.debian.org/debian-security/ buster/updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian-security/ buster/updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb http://archive.debian.org/debian/ buster-updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian/ buster-updates main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb http://archive.debian.org/debian/ buster-backports main contrib non-free' >> /etc/apt/sources.list
+              echo 'deb-src http://archive.debian.org/debian/ buster-backports main contrib non-free' >> /etc/apt/sources.list
+              
+              # 2. 更新源 (忽略过期检查)
+              apt-get -o Acquire::Check-Valid-Until=false update
+              
+              # 3. 安装基础依赖
+              apt-get install -y \
+                git \
+                curl \
+                unzip \
+                xz-utils \
+                clang \
+                cmake \
+                ninja-build \
+                pkg-config \
+                libgtk-3-dev \
+                libblkid-dev \
+                liblzma-dev \
+                libstdc++-8-dev \
+                libappindicator3-dev
+              
+              # 4. 解决挂载目录的 Git 权限问题
+              git config --global --add safe.directory '*'
+              
+              # 5. 安装 Flutter (升级到 3.24.5)
+              cd /opt
+              git clone https://github.com/flutter/flutter.git -b 3.24.5 /opt/flutter
+              export PATH=\"/opt/flutter/bin:\$PATH\"
+              
+              # 6. 禁用 Flutter 遥测
+              flutter config --no-analytics
+              
+              # 7. 预下载 Flutter 依赖
+              flutter precache
               
               # 8. 回到项目 app 目录
               cd /workspace/app
@@ -46,7 +88,7 @@ jobs:
               # 10. 获取依赖
               flutter pub get
               
-              # 11. 构建 Linux 版本 (开启详细日志输出)
+              # 11. 构建 Linux 版本 (加上 -v 输出极其详细的日志，防 OOM)
               flutter build linux --release -v
               
               # 12. 打包成 tar.gz
@@ -55,6 +97,7 @@ jobs:
               
               echo 'Build complete!'
             "
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
