@@ -34,7 +34,7 @@ jobs:
             bash -c "
               set -e
               
-              # 1. 替换 Debian 10 源为 archive 源 (使用 echo 避免 EOF 缩进冲突)
+              # 1. 替换 Debian 10 源为 archive 源
               echo 'deb http://archive.debian.org/debian/ buster main contrib non-free' > /etc/apt/sources.list
               echo 'deb-src http://archive.debian.org/debian/ buster main contrib non-free' >> /etc/apt/sources.list
               echo 'deb http://archive.debian.org/debian-security/ buster/updates main contrib non-free' >> /etc/apt/sources.list
@@ -44,53 +44,62 @@ jobs:
               echo 'deb http://archive.debian.org/debian/ buster-backports main contrib non-free' >> /etc/apt/sources.list
               echo 'deb-src http://archive.debian.org/debian/ buster-backports main contrib non-free' >> /etc/apt/sources.list
               
-              # 2. 更新源 (忽略过期检查)
+              # 2. 更新源
               apt-get -o Acquire::Check-Valid-Until=false update
               
               # 3. 安装基础依赖
               apt-get install -y git curl unzip xz-utils clang cmake ninja-build pkg-config libgtk-3-dev libblkid-dev liblzma-dev libstdc++-8-dev libappindicator3-dev
               
-              # 4. 【关键修复】安装 Rust (rhttp 插件必须依赖)
+              # ==========================================
+              # 4. 【终极防 OOM 补丁】强制限制 Ninja 为单线程编译
+              # ==========================================
+              echo 'Patching ninja to use single thread (-j 1)...'
+              mv /usr/bin/ninja /usr/bin/ninja-bin
+              echo '#!/bin/bash' > /usr/bin/ninja
+              echo 'exec /usr/bin/ninja-bin -j 1 \"\$@\"' >> /usr/bin/ninja
+              chmod +x /usr/bin/ninja
+              
+              # 5. 安装 Rust
               echo 'Installing Rust...'
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
               export PATH=\"/root/.cargo/bin:\$PATH\"
               
-              # 5. 解决挂载目录的 Git 权限问题
+              # 6. 解决 Git 权限问题
               git config --global --add safe.directory '*'
               
-              # 6. 安装 Flutter
+              # 7. 安装 Flutter
               cd /opt
               git clone https://github.com/flutter/flutter.git -b 3.24.5 /opt/flutter
               export PATH=\"/opt/flutter/bin:\$PATH\"
               
-              # 7. 禁用 Flutter 遥测
+              # 8. 禁用 Flutter 遥测
               flutter config --no-analytics
               
-              # 8. 预下载 Flutter 依赖
+              # 9. 预下载 Flutter 依赖
               flutter precache
               
-              # 9. 回到项目 app 目录
+              # 10. 回到项目 app 目录
               cd /workspace/app
               
-              # 10. 移除 CMake 中的 -Werror，防止旧编译器警告中断
+              # 11. 移除 CMake 中的 -Werror
               if [ -f linux/CMakeLists.txt ]; then
                 sed -i 's/-Werror/-Wno-unused-function/g' linux/CMakeLists.txt
               fi
               
-              # 11. 获取依赖
+              # 12. 获取依赖
               flutter pub get
               
-              # 12. 构建 Linux 版本
+              # 13. 构建 Linux 版本 (单线程会非常慢，但一定能活下来)
               flutter build linux --release -v
               
               # ==========================================
-              # 13. 打包成 tar.gz
+              # 14. 打包成 tar.gz
               # ==========================================
               cd build/linux/arm64/release/bundle
               tar czf /workspace/localsend-1.17.0-debian10-arm64.tar.gz *
               
               # ==========================================
-              # 14. 顺手打包成 .deb 安装包 (UOS 专属)
+              # 15. 顺手打包成 .deb 安装包 (UOS 专属)
               # ==========================================
               echo 'Start building .deb package...'
               mkdir -p /workspace/deb_dist/DEBIAN
@@ -99,12 +108,10 @@ jobs:
               mkdir -p /workspace/deb_dist/usr/share/applications
               mkdir -p /workspace/deb_dist/usr/share/icons/hicolor/256x256/apps
               
-              # 拷贝文件和图标
               cp -r /workspace/app/build/linux/arm64/release/bundle/* /workspace/deb_dist/opt/localsend/
               cp /workspace/app/assets/img/logo-256.png /workspace/deb_dist/usr/share/icons/hicolor/256x256/apps/localsend.png
               ln -s /opt/localsend/localsend_app /workspace/deb_dist/usr/bin/localsend
               
-              # 写入 DEBIAN/control 依赖说明
               cat << 'EOF' > /workspace/deb_dist/DEBIAN/control
               Package: localsend
               Version: 1.17.0
@@ -116,7 +123,6 @@ jobs:
               Description: LocalSend - Open source cross-platform alternative to AirDrop
               EOF
               
-              # 写入桌面快捷方式
               cat << 'EOF' > /workspace/deb_dist/usr/share/applications/localsend.desktop
               [Desktop Entry]
               Version=1.0
@@ -130,7 +136,6 @@ jobs:
               Categories=Network;Utility;
               EOF
               
-              # 赋权并打包
               chmod 755 /workspace/deb_dist/DEBIAN
               chmod 755 /workspace/deb_dist/opt/localsend/localsend_app
               dpkg-deb --build /workspace/deb_dist /workspace/localsend-1.17.0-debian10-arm64.deb
@@ -159,9 +164,5 @@ jobs:
           body: |
             Built for Debian 10 (glibc 2.28) on ARM64. 
             Compatible with UOS, Deepin, and other older Debian-based distros.
-            
-            **Usage:**
-            - **UOS / Deepin**: Download the `.deb` file and double-click to install, or run `sudo dpkg -i localsend-*.deb`
-            - **Portable**: Extract the `.tar.gz` and run `./localsend_app`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
