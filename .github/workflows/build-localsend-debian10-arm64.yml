@@ -40,7 +40,7 @@ jobs:
               # 2. 更新源 (忽略过期检查)
               apt-get -o Acquire::Check-Valid-Until=false update
               
-              # 3. 安装基础依赖 (包含 git)
+              # 3. 安装基础依赖
               apt-get install -y \
                 git \
                 curl \
@@ -59,9 +59,9 @@ jobs:
               # 4. 解决挂载目录的 Git 权限问题
               git config --global --add safe.directory '*'
               
-              # 5. 安装 Flutter
+              # 5. 安装 Flutter (升级到 3.24.5)
               cd /opt
-              git clone https://github.com/flutter/flutter.git -b 3.16.9 /opt/flutter
+              git clone https://github.com/flutter/flutter.git -b 3.24.5 /opt/flutter
               export PATH=\"/opt/flutter/bin:\$PATH\"
               
               # 6. 禁用 Flutter 遥测
@@ -73,13 +73,18 @@ jobs:
               # 8. 回到项目 app 目录
               cd /workspace/app
               
-              # 9. 获取依赖
+              # 9. 移除 CMake 中的 -Werror，防止 Debian 10 的旧编译器警告中断构建
+              if [ -f linux/CMakeLists.txt ]; then
+                sed -i 's/-Werror/-Wno-unused-function/g' linux/CMakeLists.txt
+              fi
+              
+              # 10. 获取依赖
               flutter pub get
               
-              # 10. 构建 Linux 版本
+              # 11. 构建 Linux 版本
               flutter build linux --release
               
-              # 11. 打包成 tar.gz
+              # 12. 打包成 tar.gz
               cd build/linux/arm64/release/bundle
               tar czf /workspace/localsend-1.17.0-debian10-arm64.tar.gz *
               
