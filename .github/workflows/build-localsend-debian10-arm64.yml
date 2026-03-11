@@ -27,8 +27,30 @@ jobs:
             bash -c "
               set -e
               
-              # 更新源
-              apt-get update
+              # 解决挂载目录的 Git 权限问题
+              git config --global --add safe.directory '*'
+              
+              # 替换 Debian 10 源为 archive 源
+              cat << 'EOF' > /etc/apt/sources.list
+              # 官方 LTS 源
+              deb http://archive.debian.org/debian/ buster main contrib non-free
+              deb-src http://archive.debian.org/debian/ buster main contrib non-free
+              
+              # 官方 LTS 安全更新源
+              deb http://archive.debian.org/debian-security/ buster/updates main contrib non-free
+              deb-src http://archive.debian.org/debian-security/ buster/updates main contrib non-free
+              
+              # 官方更新源
+              deb http://archive.debian.org/debian/ buster-updates main contrib non-free
+              deb-src http://archive.debian.org/debian/ buster-updates main contrib non-free
+              
+              # 官方 backports 源
+              deb http://archive.debian.org/debian/ buster-backports main contrib non-free
+              deb-src http://archive.debian.org/debian/ buster-backports main contrib non-free
+              EOF
+              
+              # 更新源 (必须添加忽略过期检查的参数，否则 archive 源会报错)
+              apt-get -o Acquire::Check-Valid-Until=false update
               
               # 安装基础依赖
               apt-get install -y \
@@ -43,12 +65,12 @@ jobs:
                 libgtk-3-dev \
                 libblkid-dev \
                 liblzma-dev \
-                libstdc++-8-dev
+                libstdc++-8-dev \
+                libappindicator3-dev
               
-              # 安装 Flutter (使用 3.16.x 版本，兼容 Debian 10)
+              # 安装 Flutter
               cd /opt
-              curl -O https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.16.9-stable.tar.xz
-              tar xf flutter_linux_3.16.9-stable.tar.xz
+              git clone https://github.com/flutter/flutter.git -b 3.16.9 /opt/flutter
               export PATH=\"/opt/flutter/bin:\$PATH\"
               
               # 禁用 Flutter 遥测
@@ -57,11 +79,8 @@ jobs:
               # 预下载 Flutter 依赖
               flutter precache
               
-              # 回到项目目录
-              cd /workspace
-              
-              # 进入 app 目录
-              cd app
+              # 回到项目 app 目录
+              cd /workspace/app
               
               # 获取依赖
               flutter pub get
@@ -95,7 +114,7 @@ jobs:
             
             Usage:
             1. Download the tar.gz file
-            2. Extract: `tar xzf localsend-*.tar.gz`
-            3. Run: `./localsend_app`
+            2. Extract: \`tar xzf localsend-*.tar.gz\`
+            3. Run: \`./localsend_app\`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
