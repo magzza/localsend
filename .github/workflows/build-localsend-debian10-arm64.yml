@@ -86,9 +86,9 @@ jobs:
               flutter pub get
               
               # ==========================================
-              # 12. 【修复 DSO missing】精准绑定 GTK 依赖到 localsend_app
+              # 12. 【修复 DSO missing】精准绑定 GTK/GDK 等依赖到 localsend_app
               # ==========================================
-              echo \"target_link_libraries(localsend_app PRIVATE gtk-3 gio-2.0 gobject-2.0 glib-2.0)\" >> linux/CMakeLists.txt
+              echo \"target_link_libraries(localsend_app PRIVATE gtk-3 gdk-3 gio-2.0 gobject-2.0 glib-2.0)\" >> linux/CMakeLists.txt
               
               # 13. 构建 Linux 版本
               flutter build linux --release -v
