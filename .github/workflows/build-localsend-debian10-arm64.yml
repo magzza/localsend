@@ -27,10 +27,7 @@ jobs:
             bash -c "
               set -e
               
-              # 解决挂载目录的 Git 权限问题
-              git config --global --add safe.directory '*'
-              
-              # 替换 Debian 10 源为 archive 源
+              # 1. 替换 Debian 10 源为 archive 源 (必须最先做)
               cat << 'EOF' > /etc/apt/sources.list
               # 官方 LTS 源
               deb http://archive.debian.org/debian/ buster main contrib non-free
@@ -49,10 +46,10 @@ jobs:
               deb-src http://archive.debian.org/debian/ buster-backports main contrib non-free
               EOF
               
-              # 更新源 (必须添加忽略过期检查的参数，否则 archive 源会报错)
+              # 2. 更新源 (忽略过期检查)
               apt-get -o Acquire::Check-Valid-Until=false update
               
-              # 安装基础依赖
+              # 3. 安装基础依赖 (包含 git)
               apt-get install -y \
                 git \
                 curl \
@@ -68,27 +65,30 @@ jobs:
                 libstdc++-8-dev \
                 libappindicator3-dev
               
-              # 安装 Flutter
+              # 4. 解决挂载目录的 Git 权限问题 (必须在安装 git 之后执行)
+              git config --global --add safe.directory '*'
+              
+              # 5. 安装 Flutter
               cd /opt
               git clone https://github.com/flutter/flutter.git -b 3.16.9 /opt/flutter
               export PATH=\"/opt/flutter/bin:\$PATH\"
               
-              # 禁用 Flutter 遥测
+              # 6. 禁用 Flutter 遥测
               flutter config --no-analytics
               
-              # 预下载 Flutter 依赖
+              # 7. 预下载 Flutter 依赖
               flutter precache
               
-              # 回到项目 app 目录
+              # 8. 回到项目 app 目录
               cd /workspace/app
               
-              # 获取依赖
+              # 9. 获取依赖
               flutter pub get
               
-              # 构建 Linux 版本
+              # 10. 构建 Linux 版本
               flutter build linux --release
               
-              # 打包成 tar.gz
+              # 11. 打包成 tar.gz
               cd build/linux/arm64/release/bundle
               tar czf /workspace/localsend-1.17.0-debian10-arm64.tar.gz *
               
