@@ -50,9 +50,7 @@ jobs:
               # 3. 安装基础依赖
               apt-get install -y git curl unzip xz-utils clang cmake ninja-build pkg-config libgtk-3-dev libblkid-dev liblzma-dev libstdc++-8-dev libappindicator3-dev
               
-              # ==========================================
-              # 4. 【终极防 OOM 补丁】强制限制 Ninja 为单线程编译
-              # ==========================================
+              # 4. 强制限制 Ninja 为单线程编译防 OOM
               echo 'Patching ninja to use single thread (-j 1)...'
               mv /usr/bin/ninja /usr/bin/ninja-bin
               echo '#!/bin/bash' > /usr/bin/ninja
@@ -89,17 +87,22 @@ jobs:
               # 12. 获取依赖
               flutter pub get
               
-              # 13. 构建 Linux 版本 (单线程会非常慢，但一定能活下来)
+              # ==========================================
+              # 13. 修复 DSO missing from command line
+              # ==========================================
+              echo \"link_libraries(gtk-3)\" >> linux/CMakeLists.txt
+              
+              # 14. 构建 Linux 版本
               flutter build linux --release -v
               
               # ==========================================
-              # 14. 打包成 tar.gz
+              # 15. 打包成 tar.gz
               # ==========================================
               cd build/linux/arm64/release/bundle
               tar czf /workspace/localsend-1.17.0-debian10-arm64.tar.gz *
               
               # ==========================================
-              # 15. 顺手打包成 .deb 安装包 (UOS 专属)
+              # 16. 顺手打包成 .deb 安装包 (UOS 专属)
               # ==========================================
               echo 'Start building .deb package...'
               mkdir -p /workspace/deb_dist/DEBIAN
