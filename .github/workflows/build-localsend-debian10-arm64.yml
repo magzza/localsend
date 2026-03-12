@@ -64,7 +64,7 @@ jobs:
               
               # 7. 安装 Flutter
               cd /opt
-              git clone https://github.com/flutter/flutter.git -b 3.24.5 /opt/flutter
+              git clone https://github.com/flutter/flutter.git -b stable /opt/flutter
               export PATH=\"/opt/flutter/bin:\$PATH\"
               
               # 8. 禁用遥测并预下载
