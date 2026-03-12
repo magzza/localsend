@@ -9,9 +9,6 @@ jobs:
     steps:
       - name: Checkout LocalSend
         uses: actions/checkout@v4
-        with:
-          repository: localsend/localsend
-          ref: v1.17.0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
